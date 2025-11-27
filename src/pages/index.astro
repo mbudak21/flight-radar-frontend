@@ -1,16 +1,49 @@
 ---
-
 ---
 
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Flight Map</title>
+
+    <style>
+      #map {
+        height: 400px;
+        width: 100%;
+      }
+
+      body {
+        margin: 0;
+        padding: 1rem;
+        background: #000;
+        color: #eaeaea;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      }
+    </style>
+  </head>
+
+  <body>
+    <h1>Flight Map</h1>
+    <div id="map"></div>
+
+    <script>
+      import L from "leaflet";
+      import "leaflet/dist/leaflet.css";
+
+      window.addEventListener("DOMContentLoaded", () => {
+        const map = L.map("map").setView([51.5074, -0.1278], 10); // London
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+          maxZoom: 19,
+          attribution: "&copy; OpenStreetMap contributors",
+        }).addTo(map);
+
+        L.marker([51.5074, -0.1278])
+          .addTo(map)
+          .bindPopup("London (LHR)")
+          .openPopup();
+      });
+    </script>
+  </body>
 </html>
