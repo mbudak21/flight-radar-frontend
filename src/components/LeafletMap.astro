@@ -1,0 +1,81 @@
+---
+const mapId = "flight-map";
+import { FlightMap } from "../lib/FlightMap";
+---
+
+<div id={mapId}></div>
+<div id="flight-info" class="flight-info hidden">
+  <h2>Flight info</h2>
+  <p>Click the plane to see details.</p>
+</div>
+
+
+<script>
+  import { FlightMap } from "../lib/FlightMap.ts";
+
+  window.addEventListener("DOMContentLoaded", () => {
+    const m = new FlightMap("flight-map");
+    (window as any).flightMap = m; // optional for debugging
+    m.loadAirports();
+
+
+    m.addFlight(
+      1,
+      41.2753,
+      28.7519,
+      "Istanbul Airport (IST)",
+      52.3667,
+      13.5033,
+      "Berlin Brandenburg (BER)",
+      new Date("2025-11-29T00:35:01"),
+      43.1289,
+      25.9951,
+      40.1286,
+      32.9951
+    )
+  });
+
+</script>
+
+<style>
+#flight-map {
+  height: 800px;
+  width: 100%;
+}
+
+/* .plane-icon:hover {
+  max-width: 1px;
+} */
+
+/* Info pane */
+.flight-info {
+  position: fixed;
+  right: 1.5rem;
+  top: 1.5rem;
+  min-width: 260px;
+  max-width: 320px;
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  background: rgba(15, 15, 15, 0.9);
+  color: #eaeaea;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(10px);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  z-index: 1000;
+}
+
+.flight-info h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.1rem;
+}
+
+.flight-info p {
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+}
+
+.flight-info.hidden {
+  display: none;
+}
+
+</style>
