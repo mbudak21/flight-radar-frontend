@@ -11,6 +11,27 @@ declare module "leaflet" {
   }
 }
 
+export interface FlightDTO {
+  id: number;
+
+  startLat: number;
+  startLng: number;
+  startLocationName: string;
+
+  endLat: number;
+  endLng: number;
+  endLocationName: string;
+
+  lastUpdatedAt: string; // ISO string from backend
+
+  posLat: number;
+  posLng: number;
+
+  prevLat: number;
+  prevLng: number;
+}
+
+
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet-rotatedmarker";
@@ -32,40 +53,22 @@ const airportIcon = L.icon({
 export class FlightMap {
   private map: L.Map;
   private mapId: string;
-  private currentTime: Date | null = null;
-
-
+  private flightsLayer: L.LayerGroup;
 
 
   constructor(mapId: string) {
     this.mapId = mapId;
     this.map = L.map(mapId).setView([43.0, 27.1278], 6); // Marmara
     this.initMap();
+    this.flightsLayer = L.layerGroup().addTo(this.map);
   }
 
+  public addFlight(dto: FlightDTO){
 
-  // "id": 1,
-  // "startLat": 41.2753,
-  // "startLng": 28.7519,
-  // "startLocationName": "Istanbul Airport (IST)",
-  // "endLat": 52.3667,
-  // "endLng": 13.5033,
-  // "endLocationName": "Berlin Brandenburg (BER)",
-  // "lastUpdatedAt": "2025-11-29T00:35:01",
-  // "posLat": 40.1289,
-  // "posLng": 32.9951,
-  // "prevLat": 40.1286,
-  // "prevLng": 32.9951
-  public addFlight(id: number, 
-    startLat: number, startLng: number, startName: string,
-    endLat: number, endLng: number, endName: string,
-    lastUpdate: Date,
-    posLat: number, posLng: number, prevLat: number, prevLng: number
-  ){
-    const start: [number, number] = [startLat, startLng];
-    const end:   [number, number] = [endLat, endLng];
-    const pos:   [number, number] = [posLat, posLng];
-    const prev:  [number, number] = [prevLat, prevLng];
+    const start: [number, number] = [dto.startLat, dto.startLng];
+    const end:   [number, number] = [dto.endLat, dto.endLng];
+    const pos:   [number, number] = [dto.posLat, dto.posLng];
+    const prev:  [number, number] = [dto.prevLat, dto.prevLng];
 
     // // 1. Start Marker
     // L.marker(start, { icon: airportIcon })
@@ -83,9 +86,10 @@ export class FlightMap {
       rotationOrigin: "center center",
       rotationAngle: -86
     })
-      .addTo(this.map)
+      .addTo(this.flightsLayer)
       .bindPopup(
-        `<strong>${startName} → ${endName}</strong><br/>Last update: ${lastUpdate.toISOString()}`
+        `<strong>${dto.startLocationName} → ${dto.endLocationName}</strong><br/>Last update: ${dto.lastUpdatedAt}`,
+        { offset: L.point(0, -8) }
       );
 
     // 4. Line from start to Plane
@@ -93,7 +97,7 @@ export class FlightMap {
       color: "red",
       weight: 3,
       opacity: 0.8,
-    }).addTo(this.map);
+    }).addTo(this.flightsLayer);
 
     // 5. Line from Plane to End
     L.polyline([pos, end], {
@@ -102,13 +106,36 @@ export class FlightMap {
       opacity: 0.8,
       dashArray: "4 4"
       
-    }).addTo(this.map);
+    }).addTo(this.flightsLayer);
   }
 
-  public loadFlights(){
-    const API_URL = 'http://localhost:8080/api/flights';
+  public async loadFlightsAt(isoDateTime: string){
+    this.clearFlights();
+    const API_URL = `http://localhost:8080/api/flights?dateTime=${encodeURIComponent(isoDateTime)}`;
+
+    try{
+      const res = await fetch(API_URL);
+      if (!res.ok){
+        console.error("Failed to fetch flights from: ", API_URL, res.status, await res.text());
+        return;
+      }
+
+      const flights = await res.json();
+      console.log(flights);
+
+      flights.forEach(flight => {
+        console.log(flight.lastUpdatedAt);
+        this.addFlight({...flight, lastUpdate: new Date(flight.lastUpdatedAt)});
+      });
+
+    } catch (err) {
+      console.error("Error loading flights", err);
+    }
   }
 
+  public clearFlights() {
+    this.flightsLayer.clearLayers();
+  }
 
 
   public addAirport(name: string, lat: number, lng: number) {

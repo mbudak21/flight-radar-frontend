@@ -1,5 +1,8 @@
 ---
-import LeafletMap from "../components/LeafletMap.astro"
+import LeafletMap from "../components/LeafletMap.astro";
+import DatePicker from "../components/DatePicker";
+import Slider from "../components/Slider.astro";
+import "../styles/global.css";
 ---
 
 <html lang="en">
@@ -10,20 +13,103 @@ import LeafletMap from "../components/LeafletMap.astro"
   </head>
 
   <body>
-    <h1>Flight Map</h1>
-    <!-- <div id="map"></div> -->
-    <LeafletMap client:load/>
+    
+
+    <div class="date-controls">
+      <h1>Flight Map</h1>
+      <DatePicker client:load/>
+    </div>
+
+    <LeafletMap/>
+
+    <div class="time-controls">
+      <Slider/>
+    </div>
+
   </body>
 </html>
 
-<style>
+<style is:global>
+  .date-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;  /* space between items */
+    margin-top: 1rem;
+  }
+  .time-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;  /* space between items */
+    margin-top: 1rem;
+  }
 
-
-  body {
-    margin: 0;
-    padding: 1rem;
-    background: #000;
-    color: #eaeaea;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  .time-controls .time-slider {
+    width: 100rem;
   }
 </style>
+
+<script>
+  import type { FlightMap } from "../lib/FlightMap";
+  // Pads numbers, ex: "6" -> "06"
+  function pad(n: number) { return String(n).padStart(2, '0'); }
+
+  const now = new Date();
+
+  let currentTime = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
+  let currentDate = now.toISOString().split("T")[0];
+
+  function makeDateTimeISO() {
+    if (!currentDate || !currentTime) return null;
+
+    const iso = `${currentDate}T${currentTime}`;
+    const obj = new Date(iso);
+
+    if (isNaN(obj.getTime())) {
+      console.warn("Invalid datetime", iso);
+      return null;
+    }
+
+    return obj.toISOString();
+  }
+
+  async function updateFlights() {
+    const iso = makeDateTimeISO();
+    if (!iso) return;
+
+    console.log("Fetching flights for:", iso);
+
+    const map = (window as any).flightMap as FlightMap | undefined;
+    if (!map) {
+      console.warn("flightMap not ready yet");
+      return;
+    }
+
+    await map.loadFlightsAt(iso);
+  }
+  
+  window.addEventListener("DOMContentLoaded", () => {
+    const timeLabel = document.getElementById("time-label");
+
+    if (!timeLabel) {
+      console.warn("Time label not found");
+      return;
+    }
+
+    timeLabel.addEventListener("timechange", (e) => {
+      console.log("Current Time:", e.detail.text);
+      currentTime = e.detail.text;
+      updateFlights();
+
+    });
+
+  });
+
+  window.addEventListener('datechange', (event) => {
+    currentDate = event.detail.isoDate;
+    console.log('Selected date:', currentDate);
+  });
+
+  console.log(makeDateTimeISO());
+
+</script>

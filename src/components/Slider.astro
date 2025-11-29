@@ -1,0 +1,241 @@
+---
+// No props needed for now; customize later if you want.
+---
+
+<div class="time-slider">
+  <div class="time-slider-header">
+    <button type="button" id="time-play-toggle">▶</button>
+    <span class="time-label" id="time-label">00:00:00</span>
+
+    <button type="button" id="time-live">Go Live</button>
+  </div>
+
+  <input
+    id="time-range"
+    type="range"
+    min="0"
+    max="86400"
+    step="1"
+    value="0"
+  />
+
+  <div class="time-slider-footer">
+    <span>00:00</span>
+    <span>24:00</span>
+  </div>
+</div>
+
+
+<style>
+  .time-slider {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    background: rgba(20, 20, 20, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(10px);
+    color: #eaeaea;
+  }
+
+  .time-slider-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  #time-play-toggle {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: transparent;
+    color: inherit;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 0;
+  }
+
+  #time-play-toggle:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+  }
+
+  #time-live {
+    margin-left: auto;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.08);
+    color: inherit;
+    cursor: pointer;
+    font-size: 0.8rem;
+  }
+
+  #time-live:hover {
+    background: rgba(255,255,255,0.15);
+  }
+
+  #time-range {
+    width: 100%;
+    cursor: pointer;
+    accent-color: #ffffff; /* normal mode */
+  }
+
+  .time-slider-footer {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    opacity: 0.7;
+  }
+
+  /* === LIVE MODE STYLING === */
+
+  .time-slider.live {
+    border-color: #ff5252;
+    box-shadow: 0 0 12px rgba(255, 82, 82, 0.4);
+  }
+
+  .time-slider.live #time-range {
+    accent-color: #ff3b3b;
+  }
+
+  .time-slider.live #time-play-toggle {
+    border-color: #ff3b3b;
+    color: #ff3b3b;
+  }
+
+  .time-slider.live #time-live {
+    background: #b71c1c;
+    border-color: #ff5252;
+    color: #ffffff;
+  }
+
+</style>
+
+<script lang="js">
+  const container   = document.querySelector('.time-slider');
+  const slider      = document.getElementById('time-range');
+  const label       = document.getElementById('time-label');
+  const playButton  = document.getElementById('time-play-toggle');
+  const liveButton  = document.getElementById('time-live');
+
+  if (container && slider && label && playButton && liveButton) {
+    const maxSeconds = 24 * 60 * 60; // 86400
+    let timerId = null;
+    let isPlaying = false; // normal playback
+    let isLive    = false; // live mode
+
+    const formatTime = (totalSeconds) => {
+      totalSeconds = Math.max(0, Math.min(maxSeconds, totalSeconds));
+
+      const hours   = Math.floor(totalSeconds / 3600);
+      const minutes = Math.floor((totalSeconds % 3600) / 60);
+      const seconds = totalSeconds % 60;
+
+      const pad = (n) => n.toString().padStart(2, '0');
+      return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+    };
+
+    const setSliderSeconds = (seconds) => {
+      slider.value = String(seconds);
+      text = formatTime(seconds)
+      label.textContent = text;
+
+      label.dispatchEvent(new CustomEvent("timechange", {
+        detail: { seconds, text }
+      }));
+    };
+
+    const secondsSinceMidnight = () => {
+      const now = new Date();
+      return now.getHours() * 3600 +
+             now.getMinutes() * 60 +
+             now.getSeconds();
+    };
+
+    const syncToNow = () => {
+      setSliderSeconds(secondsSinceMidnight());
+    };
+
+    const tickForward = () => {
+      const next = (+slider.value + 1) % (maxSeconds + 1);
+      setSliderSeconds(next);
+    };
+
+    const updateUI = () => {
+      container.classList.toggle('live', isLive);
+
+      // Play button:
+      // - Live mode: red dot
+      // - Normal: ▶ / ⏸
+      if (isLive) {
+        playButton.textContent = '●';
+      } else {
+        playButton.textContent = isPlaying ? '⏸' : '▶';
+      }
+
+      // Live button text
+      liveButton.textContent = isLive ? 'Live' : 'Go Live';
+    };
+
+    const updateTimer = () => {
+      if (timerId) {
+        clearInterval(timerId);
+        timerId = null;
+      }
+
+      if (!isLive && !isPlaying) return;
+
+      timerId = setInterval(() => {
+        if (isLive) {
+          syncToNow();
+        } else if (isPlaying) {
+          tickForward();
+        }
+      }, 1000);
+    };
+
+    // --- Event handlers ---
+
+    slider.addEventListener('input', () => {
+      // touching the slider kills live mode
+      isLive = false;
+      label.textContent = formatTime(+slider.value);
+      updateUI();
+      updateTimer();
+    });
+
+    playButton.addEventListener('click', () => {
+      // if we were in live mode, turn it off and just play from here
+      if (isLive) {
+        isLive = false;
+      }
+      isPlaying = !isPlaying;
+      updateUI();
+      updateTimer();
+    });
+
+    liveButton.addEventListener('click', () => {
+      isLive = !isLive;
+
+      if (isLive) {
+        // jump to actual current time when enabling live
+        syncToNow();
+        // live mode implies "playing"
+        isPlaying = false;
+        window.dispatchEvent(new CustomEvent("flight-go-live"));
+      }
+
+      updateUI();
+      updateTimer();
+    });
+
+    // init: start at current local time
+    syncToNow();
+    updateUI();
+  }
+</script>

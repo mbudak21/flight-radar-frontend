@@ -15,9 +15,10 @@ import { FlightMap } from "../lib/FlightMap";
 
   window.addEventListener("DOMContentLoaded", () => {
     const m = new FlightMap("flight-map");
-    (window as any).flightMap = m; // optional for debugging
-    m.loadAirports();
 
+    (window as any).flightMap = m; // optional for debugging??
+    
+    m.loadAirports();
 
     m.addFlight(
       1,
