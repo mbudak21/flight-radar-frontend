@@ -169,13 +169,11 @@
     const updateUI = () => {
       container.classList.toggle('live', isLive);
 
-      // Play button:
-      // - Live mode: red dot
-      // - Normal: ▶ / ⏸
+
       if (isLive) {
         playButton.textContent = '●';
       } else {
-        playButton.textContent = isPlaying ? '⏸' : '▶';
+        playButton.textContent = isPlaying ? '| |' : '▶';
       }
 
       // Live button text

@@ -20,7 +20,10 @@ import "../styles/global.css";
       <DatePicker client:load/>
     </div>
 
-    <LeafletMap/>
+    <section class="flight-map-card">
+      <LeafletMap/>
+    </section>
+
 
     <div class="time-controls">
       <Slider/>
@@ -45,7 +48,16 @@ import "../styles/global.css";
   }
 
   .time-controls .time-slider {
-    width: 100rem;
+    width: 100%;
+  }
+
+  .flight-map-card {
+    position: relative;
+    border-radius: 1rem;
+    overflow: hidden;
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+    background: radial-gradient(circle at top left, #202530, #050508);
+    box-shadow: 0 9px 20px rgba(0, 0, 0, 0.55);
   }
 </style>
 
