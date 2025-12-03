@@ -252,10 +252,6 @@ export class FlightMap {
     }
   }
 
-  // public clearFlights() {
-  //   this.flightsLayer.clearLayers();
-  // }
-
   public addAirport(name: string, lat: number, lng: number) {
     const loc: [number, number] = [lat, lng];
 
