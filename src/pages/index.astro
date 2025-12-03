@@ -13,52 +13,73 @@ import "../styles/global.css";
   </head>
 
   <body>
-    
+    <div class="wrap">
+      <div class="date-controls">
+        <h1>Flight Map</h1>
+        <DatePicker client:load/>
+      </div>
 
-    <div class="date-controls">
-      <h1>Flight Map</h1>
-      <DatePicker client:load/>
-    </div>
-
-    <section class="flight-map-card">
-      <LeafletMap/>
-    </section>
+      <div class="flight-map-card">
+        <LeafletMap/>
+      </div>
 
 
-    <div class="time-controls">
-      <Slider/>
+      <div class="time-controls">
+        <Slider/>
+      </div>
     </div>
 
   </body>
+
 </html>
 
 <style is:global>
+
   .date-controls {
     display: flex;
+    align-items: center;
     justify-content: space-between;
-    align-items: center;
-    gap: 1rem;  /* space between items */
-    margin-top: 1rem;
-  }
-  .time-controls {
-    display: flex;
-    align-items: center;
-    gap: 1rem;  /* space between items */
-    margin-top: 1rem;
-  }
-
-  .time-controls .time-slider {
-    width: 100%;
+    gap: 1rem;
+    height: 5rem;
   }
 
   .flight-map-card {
-    position: relative;
+    flex: 1;
     border-radius: 1rem;
     overflow: hidden;
     border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
-    background: radial-gradient(circle at top left, #202530, #050508);
     box-shadow: 0 9px 20px rgba(0, 0, 0, 0.55);
   }
+
+  .time-controls {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+ }
+
+  .time-controls .time-slider {
+    width: 100%;
+    border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+    box-shadow: 0 9px 20px rgba(0, 0, 0, 0.55);
+  }
+
+
+  /* Debugging */
+  
+  /* .date-controls{
+    background: red;
+  }
+  .flight-map-card {
+    background: green;
+  }
+  .time-controls {
+    background: yellow;
+  }
+  .time-controls .time-slider {
+    background: purple;
+  }
+  html{
+    background: mediumvioletred;
+  } */
 </style>
 
 <script>
