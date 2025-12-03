@@ -1,7 +1,3 @@
----
-// No props needed for now; customize later if you want.
----
-
 <div class="time-slider">
   <div class="time-slider-header">
     <button type="button" id="time-play-toggle">▶</button>
@@ -76,13 +72,23 @@
   }
 
   #time-live:hover {
-    background: rgba(255,255,255,0.15);
+    background: #8e3131;
   }
 
   #time-range {
     width: 100%;
     cursor: pointer;
-    accent-color: #ffffff; /* normal mode */
+    width: 100%; /* Full-width */
+    height: 25px; /* Specified height */
+    background: #d3d3d3; /* Grey background */
+    outline: none; /* Remove outline */
+    opacity: 0.7; /* Set transparency (for mouse-over effects on hover) */
+    -webkit-transition: .2s;
+    transition: opacity .2s;  
+  }
+
+  #time-range:hover {
+    opacity: 1;
   }
 
   .time-slider-footer {
@@ -100,7 +106,7 @@
   }
 
   .time-slider.live #time-range {
-    accent-color: #ff3b3b;
+    accent-color: #d40d06;
   }
 
   .time-slider.live #time-play-toggle {
@@ -116,124 +122,127 @@
 
 </style>
 
-<script lang="js">
-  const container   = document.querySelector('.time-slider');
-  const slider      = document.getElementById('time-range');
-  const label       = document.getElementById('time-label');
-  const playButton  = document.getElementById('time-play-toggle');
-  const liveButton  = document.getElementById('time-live');
+<script>
+(() => {
+  // Definitions
+  const pad = (n: number) => n.toString().padStart(2, '0');
+  const clamp = (s: number) => Math.max(0, Math.min(MAX_SECONDS, s));
 
-  if (container && slider && label && playButton && liveButton) {
-    const maxSeconds = 24 * 60 * 60; // 86400
-    let timerId = null;
-    let isPlaying = false; // normal playback
-    let isLive    = false; // live mode
+  const formatTime = (totalSeconds: number) => {
+    totalSeconds = clamp(totalSeconds);
 
-    const formatTime = (totalSeconds) => {
-      totalSeconds = Math.max(0, Math.min(maxSeconds, totalSeconds));
+    const hours   = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    
+    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  };
 
-      const hours   = Math.floor(totalSeconds / 3600);
-      const minutes = Math.floor((totalSeconds % 3600) / 60);
-      const seconds = totalSeconds % 60;
+  const secondsSinceMidnight = () => {
+    const now = new Date();
+    return now.getHours() * 3600 +
+            now.getMinutes() * 60 +
+            now.getSeconds();
+  };
 
-      const pad = (n) => n.toString().padStart(2, '0');
-      return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
-    };
+  const setSliderSeconds = (seconds: number) => {
+    const s = clamp(seconds);
 
-    const setSliderSeconds = (seconds) => {
-      slider.value = String(seconds);
-      text = formatTime(seconds)
-      label.textContent = text;
+    slider.value = String(s);
+    const text = formatTime(s);
+    label.textContent = text
+    label.dispatchEvent(
+      new CustomEvent("timechange", {detail: {sceonds: s, text}})
+    )
+  };
 
-      label.dispatchEvent(new CustomEvent("timechange", {
-        detail: { seconds, text }
-      }));
-    };
-
-    const secondsSinceMidnight = () => {
-      const now = new Date();
-      return now.getHours() * 3600 +
-             now.getMinutes() * 60 +
-             now.getSeconds();
-    };
-
-    const syncToNow = () => {
-      setSliderSeconds(secondsSinceMidnight());
-    };
-
-    const tickForward = () => {
-      const next = (+slider.value + 1) % (maxSeconds + 1);
-      setSliderSeconds(next);
-    };
-
-    const updateUI = () => {
-      container.classList.toggle('live', isLive);
+  const syncToNow = () => setSliderSeconds(secondsSinceMidnight());
+  const tickForward = () => setSliderSeconds(Number(slider.value) + 1);
 
 
-      if (isLive) {
-        playButton.textContent = '●';
-      } else {
-        playButton.textContent = isPlaying ? '| |' : '▶';
-      }
 
-      // Live button text
-      liveButton.textContent = isLive ? 'Live' : 'Go Live';
-    };
+  // Code Start
+  const container   = document.querySelector('.time-slider') as HTMLDivElement;
+  const slider      = document.getElementById('time-range') as HTMLInputElement;
+  const label       = document.getElementById('time-label') as HTMLSpanElement;
+  const playButton  = document.getElementById('time-play-toggle') as HTMLButtonElement;
+  const liveButton  = document.getElementById('time-live') as HTMLButtonElement;
 
-    const updateTimer = () => {
-      if (timerId) {
-        clearInterval(timerId);
-        timerId = null;
-      }
 
-      if (!isLive && !isPlaying) return;
-
-      timerId = setInterval(() => {
-        if (isLive) {
-          syncToNow();
-        } else if (isPlaying) {
-          tickForward();
-        }
-      }, 1000);
-    };
-
-    // --- Event handlers ---
-
-    slider.addEventListener('input', () => {
-      // touching the slider kills live mode
-      isLive = false;
-      label.textContent = formatTime(+slider.value);
-      updateUI();
-      updateTimer();
-    });
-
-    playButton.addEventListener('click', () => {
-      // if we were in live mode, turn it off and just play from here
-      if (isLive) {
-        isLive = false;
-      }
-      isPlaying = !isPlaying;
-      updateUI();
-      updateTimer();
-    });
-
-    liveButton.addEventListener('click', () => {
-      isLive = !isLive;
-
-      if (isLive) {
-        // jump to actual current time when enabling live
-        syncToNow();
-        // live mode implies "playing"
-        isPlaying = false;
-        window.dispatchEvent(new CustomEvent("flight-go-live"));
-      }
-
-      updateUI();
-      updateTimer();
-    });
-
-    // init: start at current local time
-    syncToNow();
-    updateUI();
+  if (!container || !slider || !label || !playButton || !liveButton) {
+    console.error("Content not loaded yet!")
+    return;
   }
+  
+  const MAX_SECONDS = 24 * 60 * 60; // 86400
+  let timerId: number | null = null;
+  let isPlaying = false; // normal playback
+  let isLive    = false; // live mode
+
+  const updateUI = () => {
+    if (isLive) {
+      playButton.textContent = "●";
+      container.classList.add("live");
+    } else {
+      playButton.textContent = isPlaying ? '| |' : '▶'
+      container.classList.remove("live");
+    }
+    liveButton.textContent = isLive ? "Live" : "Go Live";
+  }
+
+  const stopTimer = () => {
+    if (timerId !== null) {
+      clearInterval(timerId);
+      timerId = null;
+    }
+  };
+
+  const updateTimer = () => {
+    stopTimer();
+    if (!isLive && !isPlaying) return;
+
+    timerId = window.setInterval(() => {
+      if (isLive) {
+        syncToNow();
+      } else if (isPlaying) {
+        tickForward();
+      }
+    }, 1000);
+  }
+
+
+
+  // --- Event handlers ---
+
+  slider.addEventListener('input', () => {
+    isLive = false;
+    setSliderSeconds(Number(slider.value));
+    updateUI();
+    updateTimer();
+  });
+
+  playButton.addEventListener('click', () => {
+    if (isLive) isLive = false;
+    isPlaying = !isPlaying;
+    updateUI();
+    updateTimer()
+  });
+
+  liveButton.addEventListener('click', () => {
+    isLive = !isLive;
+    if (isLive) {
+      syncToNow();
+      isPlaying = false;
+      window.dispatchEvent(new CustomEvent("flight-go-live"));
+    }
+    updateUI();
+    updateTimer()
+  });
+
+  syncToNow();
+  updateUI();
+  updateTimer();
+
+
+})();
 </script>
