@@ -1,3 +1,6 @@
+const API_URL = "http://localhost:8080/api/";
+const MAX_ARRAY_SIZE = 300; // Max positions to remember by flight
+
 // Enable IDE typing for leaflet-rotatedmarker
 declare module "leaflet" {
   interface MarkerOptions {
@@ -38,7 +41,7 @@ export interface FlightPosDTO {
   time: string // ISO string from backend
 }
 
-import L from "leaflet";
+import L, { type LatLngExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import "leaflet-rotatedmarker";
 import * as turf from "@turf/turf";
@@ -64,9 +67,12 @@ export class FlightMap {
 
   private flightsCache = new Map<number, [FlightDTO, L.Marker]>(); // Cache
 
+  private isFlightSelected: Boolean = false; // Flight chosen in the UI
+  private fligthSelectedId: number;
+
   constructor(mapId: string) {
     this.map = L.map(mapId).setView([43.0, 27.1278], 6); // Marmara
-    this.initMap();
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {maxZoom: 19,}).addTo(this.map);
     this.flightsLayer = L.layerGroup().addTo(this.map);
     this.trackLayer = L.layerGroup().addTo(this.map);
 
@@ -100,8 +106,8 @@ export class FlightMap {
     })
   }
 
-  private async getFlightPath(id: Number, isoDateTime: string, maxArraySize: number = 300){
-    const URL = `http://localhost:8080/api/flights/${id}/positions?dateTime=${encodeURIComponent(isoDateTime)}&maxSize=${encodeURIComponent(maxArraySize)}`;
+  private async getFlightPath(id: Number, isoDateTime: string, maxArraySize: number = MAX_ARRAY_SIZE){
+    const URL = API_URL + `flights/${id}/positions?dateTime=${encodeURIComponent(isoDateTime)}&maxSize=${encodeURIComponent(maxArraySize)}`;
 
     try {
       const res = await fetch(URL);
@@ -147,10 +153,14 @@ export class FlightMap {
         dashArray: "4 6", // dashed
       },
     }).addTo(this.trackLayer);
+
+    this.isFlightSelected = true;
+    this.fligthSelectedId = dto.id;
   }
 
   private clearFlightPath(){
     this.trackLayer.clearLayers();
+    this.isFlightSelected = false;
   }
 
   public addFlight(dto: FlightDTO) {
@@ -202,12 +212,20 @@ export class FlightMap {
       marker.setLatLng(pos);
       marker.setRotationAngle(this.getRotation(prev, pos));
       entry[0] = dto;
+
+      if(this.isFlightSelected && dto.id == this.fligthSelectedId) {
+        (async () => {
+          const positions: FlightPosDTO[] = await this.getFlightPath(dto.id, dto.lastUpdatedAt);
+          this.drawFlightPath(positions, dto);
+        })();
+
+      }
     }
   }
 
   public async loadFlightsAt(isoDateTime: string) {
     console.log("Cache Values: ", this.flightsCache.keys().toArray().toString());
-    const URL = `http://localhost:8080/api/flights?dateTime=${encodeURIComponent(isoDateTime)}`;
+    const URL = API_URL + `flights?dateTime=${encodeURIComponent(isoDateTime)}`;
 
     try {
       const res = await fetch(URL);
@@ -261,7 +279,7 @@ export class FlightMap {
   }
 
   public async loadAirports() {
-    const URL = "http://localhost:8080/api/airports";
+    const URL = API_URL + "airports";
     try {
       const res = await fetch(URL);
       if (!res.ok) {
@@ -284,11 +302,5 @@ export class FlightMap {
     } catch (err) {
       console.error("Error loading airports", err);
     }
-  }
-
-  private initMap() {
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
-    }).addTo(this.map);
   }
 }
