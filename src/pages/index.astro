@@ -2,7 +2,16 @@
 import LeafletMap from "../components/LeafletMap.astro";
 import DatePicker from "../components/DatePicker";
 import Slider from "../components/Slider.astro";
+import FlightCreator from "../components/FlightCreator.astro";
 import "../styles/global.css";
+
+const API_URL = "http://localhost:8080/api/"
+
+const res = await fetch(API_URL + "airports");
+if (!res.ok) {
+  console.error("Failed to fetch airports:", res.status, res.statusText);
+}
+const airports = res.ok ? await res.json() : [];
 ---
 
 <html lang="en">
@@ -16,7 +25,11 @@ import "../styles/global.css";
     <div class="wrap">
       <div class="date-controls">
         <h1>Flight Map</h1>
-        <DatePicker client:load/>
+        <div class="header-wrapper">
+          <button id="flight-creator"></button>
+          <DatePicker client:load/>
+        </div>
+
       </div>
 
       <div class="flight-map-card">
@@ -27,6 +40,9 @@ import "../styles/global.css";
       <div class="time-controls">
         <Slider/>
       </div>
+      <div class="hidden" id="flight-creator-wrapper">
+        <FlightCreator airports={airports}/>
+      </div>
     </div>
 
   </body>
@@ -34,6 +50,11 @@ import "../styles/global.css";
 </html>
 
 <style is:global>
+
+  .header-wrapper {
+    display: flex;
+    gap: 1rem;
+  }
 
   .date-controls {
     display: flex;
@@ -62,6 +83,64 @@ import "../styles/global.css";
     box-shadow: 0 9px 20px rgba(0, 0, 0, 0.55);
   }
 
+  #flight-creator {
+    appearance: none;
+    border: 2px solid rgba(255, 255, 255, 0.12);
+    background: rgba(0, 0, 0, 0.852);
+    backdrop-filter: blur(8px);
+
+    font-size: ;
+
+    margin-top: 1rem;
+    padding: 0.45rem;
+    height: 2rem;
+    border-radius: 0.65rem;
+
+    color: #e5e7eb;
+    display: inline-flex;
+    align-items: center;
+
+    cursor: pointer;
+    transition:
+      border-color 0.2s ease,
+      background 0.2s ease,
+      transform 0.15s ease,
+      filter 0.15s ease;
+  }
+
+  #flight-creator::before {
+    content: "✈ Create Flight"; 
+    font-size: 1.2rem;
+    opacity: 0.9;
+  }
+
+  #flight-creator:hover {
+    border-color: rgba(31, 5, 5, 0.608);
+    background: rgba(62, 6, 6, 0.776);
+    filter: brightness(1.05);
+  }
+
+  #flight-creator:active {
+    transform: scale(0.96);
+  }
+
+  #flight-creator-wrapper {
+    position: fixed;
+    left: 50%;
+    bottom: 0;
+    width: fit-content;
+    transform: translate(-50%, 100%); /* start below view */
+    border-radius: 1rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+    z-index: 1000;
+    background: rgba(20, 20, 20, 0.95);
+
+    transition: transform 0.50s ease;
+  }
+
+  #flight-creator-wrapper.show {
+    transform: translate(-50%, -50%);
+  }
 
   /* Debugging */
   
@@ -138,10 +217,20 @@ import "../styles/global.css";
 
   });
 
-  window.addEventListener('datechange', (event) => {
-    currentDate = event.detail.isoDate;
+  window.addEventListener('datechange', (e) => {
+    currentDate = e.detail.isoDate;
     console.log('Selected date:', currentDate);
   });
+
+  window.addEventListener('flight-create', (e) => {
+    e.payload
+  })
+
+  const flightCreateBtn = document.getElementById("flight-creator") as HTMLButtonElement;
+  const flightCreateDiv = document.getElementById("flight-creator-wrapper") as HTMLDivElement;
+  flightCreateBtn.addEventListener("click", () => {
+    flightCreateDiv.classList.toggle("show");
+  })
 
   console.log(makeDateTimeISO());
 
